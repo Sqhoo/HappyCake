@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.happycake.mapper.ProductMapper">
+
+
+    <!--insert-->
+    <!--新增商品-->
+    <insert id="addProduct" parameterType="Product">
+        INSERT INTO product
+            (
+                product_id,
+                product_name,
+                product_disc,
+                product_color,
+                product_weight,
+                product_step,
+                product_time
+            )
+        VALUES
+            (
+                #{productId},
+                #{productName},
+                #{productDisc},
+                #{productColor},
+                #{productWeight},
+                #{productStep},
+                NOW()
+            )
+    </insert>
+    <!--插入默认图片-->
+    <insert id="addIndexPic" parameterType="pic">
+        INSERT INTO
+            pic
+            (pic_id,product_id,pic_path,pic_time)
+        VALUES
+            (
+                #{picId},
+                #{productId},
+                #{picPath},
+                NOW()
+            )
+    </insert>
+    <!--添加商品详细信息-->
+    <insert id="addProinfo" parameterType="list">
+        INSERT INTO
+            pinfo
+            (pinfo_id,product_id,pinfo_color,pinfo_weight,pinfo_step)
+        VALUES
+        <foreach collection="list" separator="," item="pinfo">
+            (#{pinfo.pinfoId},#{pinfo.productId},#{pinfo.pinfoColor},#{pinfo.pinfoWeight},#{pinfo.pinfoStep})
+        </foreach>
+    </insert>
+
+
+    <!--delete-->
+    <!--删除商品基本信息-->
+    <delete id="deleteProduct" parameterType="string">
+        DELETE FROM product WHERE product_id=#{product_id}
+    </delete>
+    <!--删除商品详细信息-->
+    <delete id="deletePinfo" parameterType="string">
+        DELETE FROM pinfo WHERE product_id=#{product_id}
+    </delete>
+
+    <!--update-->
+    <!--更新商品详细信息-->
+    <update id="updateProinfo" parameterType="Pinfo">
+        UPDATE
+            pinfo
+        SET
+        pinfo_time=NOW()
+        <if test="pinfoPrice!=null">
+            ,pinfo_price=#{pinfoPrice}
+        </if>
+        <if test="pinfoStock">
+            ,pinfo_stock=pinfo_stock+#{pinfoStock}
+        </if>
+        <where>
+            product_id=#{productId}
+            <if test="pinfoColor!=null and pinfoColor!='' and pinfoColor!='index'">
+                AND pinfo_color=#{pinfoColor}
+            </if>
+            <if test="pinfoWeight!=null and pinfoWeight!='' and pinfoWeight!='index'">
+                AND pinfo_weight=#{pinfoWeight}
+            </if>
+            <if test="pinfoStep!=null and pinfoStep!='' and pinfoStep!='index'">
+                AND pinfo_step=#{pinfoStep}
+            </if>
+        </where>
+    </update>
+
+    <!--select-->
+    <!--列出所有Id-->
+    <select id="queryProductId" resultType="string">
+        SELECT
+        product_id
+        FROM
+        product
+    </select>
+    <!--查询商品信息-->
+    <select id="queryProduct" parameterType="string" resultType="Product">
+        SELECT
+        *
+        FROM
+        product
+        <where>
+            <if test="_parameter!=null and _parameter!=''">
+                and product_id=#{productId}
+            </if>
+        </where>
+    </select>
+    <!--分页查询商品-->
+    <!--计数-->
+    <select id="queryProuctsCount" parameterType="ProductExt" resultType="integer">
+        SELECT
+        count(*)
+        FROM
+        product
+        <where>
+            <if test="productId!=null and productId!=''">
+                and product_id like '${productId}%'
+            </if>
+        </where>
+    </select>
+    <!--分页-->
+    <select id="queryProducts" parameterType="ProductExt" resultType="Product">
+        SELECT
+        *
+        FROM
+        product
+        <where>
+            <if test="productId!=null and productId!=''">
+                and product_id like '${productId}%'
+            </if>
+        </where>
+        limit #{pagePlace},#{pageSize}
+    </select>
+    <!--分页条件查询商品详细信息-->
+    <!--计数-->
+    <select id="queryPinfoExtCount" resultType="integer" parameterType="PinfoExt">
+        SELECT
+        count(*)
+        FROM
+        pinfo
+        <where>
+            <if test="pinfo.productId!=null and pinfo.productId!=''">
+                and pinfo.product_id like '${pinfo.productId}%'
+            </if>
+            <if test="pinfo.pinfoColor!=null and pinfo.pinfoColor!='' and pinfo.pinfoColor!='index'">
+                AND pinfo_color=#{pinfo.pinfoColor}
+            </if>
+            <if test="pinfo.pinfoWeight!=null and pinfo.pinfoWeight!='' and pinfo.pinfoWeight!='index'">
+                AND pinfo_weight=#{pinfo.pinfoWeight}
+            </if>
+            <if test="pinfo.pinfoStep!=null and pinfo.pinfoStep!='' and pinfo.pinfoStep!='index'">
+                AND pinfo_step=#{pinfo.pinfoStep}
+            </if>
+            <if test="pinfo.pinfoPrice!=null">
+                <!--不处理‘<’特殊字符-->
+                <![CDATA[
+                AND pinfo_price <= #{pinfo.pinfoPrice}
+            ]]>]
+            </if>
+            <if test="pinfo.pinfoStock!=null and pinfo.pinfoStock!='' and pinfo.pinfoStock!='index'">
+                AND pinfo_stock=#{pinfo.pinfoStock}
+            </if>
+        </where>
+    </select>
+    <!--分页-->
+    <select id="queryPinfoExt" resultType="Pinfo" parameterType="PinfoExt">
+        SELECT
+            pinfo.product_id,
+            product_name,
+            pinfo_color,
+            pinfo_weight,
+            pinfo_step,
+            pinfo_price,
+            pinfo_stock,
+            pinfo_time
+        FROM
+            pinfo
+            LEFT JOIN (
+                SELECT
+                    product.product_id,
+                    product.product_name
+                FROM
+                    product
+            ) prod ON pinfo.product_id = prod.product_id
+    <where>
+        <if test="pinfo.productId!=null and pinfo.productId!=''">
+            AND pinfo.product_id like '${pinfo.productId}%'
+        </if>
+        <if test="pinfo.pinfoColor!=null and pinfo.pinfoColor!='' and pinfo.pinfoColor!='index'">
+            AND pinfo_color=#{pinfo.pinfoColor}
+        </if>
+        <if test="pinfo.pinfoWeight!=null and pinfo.pinfoWeight!='' and pinfo.pinfoWeight!='index'">
+            AND pinfo_weight=#{pinfo.pinfoWeight}
+        </if>
+        <if test="pinfo.pinfoStep!=null and pinfo.pinfoStep!='' and pinfo.pinfoStep!='index'">
+            AND pinfo_step=#{pinfo.pinfoStep}
+        </if>
+        <if test="pinfo.pinfoPrice!=null">
+            <!--不处理‘<’特殊字符-->
+            <![CDATA[
+                AND pinfo_price <= #{pinfo.pinfoPrice}
+            ]]>]
+        </if>
+        <if test="pinfo.pinfoStock!=null and pinfo.pinfoStock!='' and pinfo.pinfoStock!='index'">
+            AND pinfo_stock=#{pinfos.pinfoStock}
+        </if>
+    </where>
+        ORDER BY
+        pinfo_time DESC
+        limit #{pagePlace},#{pageSize}
+    </select>
+    <!--查询所有颜色，重量，层数-->
+    <select id="queryColors" resultType="string">
+        SELECT pinfo_color FROM pinfo GROUP BY pinfo_color
+    </select>
+    <select id="queryWeights" resultType="string">
+        SELECT pinfo_weight FROM pinfo GROUP BY pinfo_weight
+    </select>
+    <select id="querySteps" resultType="string">
+        SELECT pinfo_step FROM pinfo GROUP BY pinfo_step
+    </select>
+</mapper>

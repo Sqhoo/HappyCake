@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.happycake.mapper.ProductMapperFr">
+    <!--计数-->
+    <select id="queryProductsCount" parameterType="ProductExt" resultType="integer">
+         SELECT
+            count(*)
+         FROM
+            product t1
+         LEFT JOIN (
+         SELECT
+            product_id,
+         AVG(pinfo_price) product_avg
+         FROM
+            pinfo
+         GROUP BY
+            product_id
+         ) t2 ON t1.product_id = t2.product_id
+         <where>
+            <if test="productAvg!=null and productAvg!=''">
+                <![CDATA[
+                    and product_avg <=#{productAvg}
+                ]]>
+            </if>
+         </where>
+    </select>
+        <!--查询所有商品-->
+    <select id="queryProducts" parameterType="ProductExt" resultType="Product">
+        SELECT
+            t1.product_id,
+            t1.product_name,
+            t1.product_disc,
+            t1.product_color,
+            t1.product_weight,
+            t1.product_step,
+            t2.product_avg,
+            t3.pic_path product_path,
+            t1.product_time
+        FROM
+            product t1
+        LEFT JOIN (
+            SELECT
+                product_id,
+                AVG(pinfo_price) product_avg
+            FROM
+                pinfo
+            GROUP BY
+                product_id
+        ) t2 ON t1.product_id = t2.product_id
+        LEFT JOIN (
+            SELECT
+                product_id,
+                pic_path
+            FROM
+            (SELECT * FROM pic WHERE pic_path not in ("default.jpg")) pic1
+            GROUP BY
+                product_id
+        ) t3 ON t1.product_id = t3.product_id
+        <where>
+            <if test="productAvg!=null and productAvg!=''">
+                <![CDATA[
+                    and product_avg <=#{productAvg}
+                ]]>
+            </if>
+        </where>
+        limit #{pagePlace},#{pageSize}
+    </select>
+<!--查询商品颜色信息-->
+    <select id="queryPinfoColor" resultType="string">
+        SELECT pinfo_color FROM pinfo GROUP BY pinfo_color
+    </select>
+    <!--根据Id查找商品-->
+    <select id="queryProduct" resultType="product" parameterType="string">
+        SELECT
+            t1.product_id,
+            t1.product_name,
+            t1.product_disc,
+            t1.product_color,
+            t1.product_weight,
+            t1.product_step,
+            t2.product_avg,
+            t1.product_time
+        FROM
+            product t1
+        LEFT JOIN (
+            SELECT
+                product_id,
+                AVG(pinfo_price) product_avg
+            FROM
+                pinfo
+            GROUP BY
+                product_id
+        ) t2 ON t1.product_id = t2.product_id
+        WHERE
+            t1.product_id=#{productId}
+    </select>
+    <select id="queryPinfoPrice" parameterType="pinfo" resultType="Double">
+        SELECT
+            avg(pinfo_price)
+        FROM
+            pinfo
+        <where>
+            product_id=#{productId}
+            <if test="pinfoColor!='' and pinfoColor!=null and pinfoColor!='undefined'">
+                and pinfo_color=#{pinfoColor}
+            </if>
+            <if test="pinfoWeight!='' and pinfoWeight!=null and pinfoWeight!='undefined'">
+                and pinfo_weight=#{pinfoWeight}
+            </if>
+            <if test="pinfoStep!='' and pinfoStep!=null and pinfoStep!='undefined'">
+                and pinfo_step=#{pinfoStep}
+            </if>
+        </where>
+    </select>
+</mapper>
